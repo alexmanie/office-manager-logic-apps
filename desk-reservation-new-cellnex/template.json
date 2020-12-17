@@ -1,0 +1,359 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_desk_reservation_new_cellnex_name": {
+            "defaultValue": "desk-reservation-new-cellnex",
+            "type": "String"
+        },
+        "connections_sharepointonline_externalid": {
+            "defaultValue": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/resourceGroups/OfficeManager/providers/Microsoft.Web/connections/sharepointonline",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_desk_reservation_new_cellnex_name')]",
+            "location": "westeurope",
+            "tags": {
+                "Project": "office-manager"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_item_is_created": {
+                            "recurrence": {
+                                "frequency": "Second",
+                                "interval": 10
+                            },
+                            "splitOn": "@triggerBody()?['value']",
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('5b477664-f7c2-43bb-9d3a-f4b794b4d54f'))}/onnewitems"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Initialize_variable": {
+                            "runAfter": {
+                                "Initialize_variable_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "end_time",
+                                        "type": "string",
+                                        "value": "18:00:00"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_2": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "start_time",
+                                        "type": "string",
+                                        "value": "09:00:00"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_3": {
+                            "runAfter": {
+                                "Initialize_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "email",
+                                        "type": "string",
+                                        "value": "@triggerBody()?['OM_Empleado']?['Email']"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_4": {
+                            "runAfter": {
+                                "Initialize_variable_3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "base64qrCode",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_5": {
+                            "runAfter": {
+                                "Initialize_variable_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "meetingId",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Switch": {
+                            "runAfter": {
+                                "Initialize_variable_5": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "cases": {
+                                "Case": {
+                                    "case": "Mañana",
+                                    "actions": {
+                                        "HTTP": {
+                                            "runAfter": {
+                                                "Set_variable": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Http",
+                                            "inputs": {
+                                                "body": {
+                                                    "attendant": "@{triggerBody()?['OM_Empleado']?['Email']}",
+                                                    "date": "@{triggerBody()?['OM_FechaReserva']}",
+                                                    "desk": "@{triggerBody()?['OM_Puesto']?['Value']}",
+                                                    "endTime": "@{variables('end_time')}",
+                                                    "office": "@{triggerBody()?['OM_Oficina']?['Value']}",
+                                                    "reservation_id": "@{triggerBody()?['ID']}",
+                                                    "startTime": "@{variables('start_time')}",
+                                                    "title": "@{triggerBody()?['Title']}",
+                                                    "zone": "@{triggerBody()?['OM_Zona']?['Value']}"
+                                                },
+                                                "headers": {
+                                                    "X-RoomManager-User": "desk-reservation-new"
+                                                },
+                                                "method": "POST",
+                                                "uri": "http://{api-url}.azurewebsites.net/api/Desk/CreateDeskMeeting"
+                                            }
+                                        },
+                                        "Set_variable": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "end_time",
+                                                "value": "14:00:00"
+                                            }
+                                        },
+                                        "Set_variable_3": {
+                                            "runAfter": {
+                                                "HTTP": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "base64qrCode",
+                                                "value": "@{json(string(body('HTTP'))).QrCode}"
+                                            }
+                                        },
+                                        "Set_variable_6": {
+                                            "runAfter": {
+                                                "Set_variable_3": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "meetingId",
+                                                "value": "@{json(string(body('HTTP'))).MeetingId}"
+                                            }
+                                        }
+                                    }
+                                },
+                                "Case_2": {
+                                    "case": "Tarde",
+                                    "actions": {
+                                        "HTTP_2": {
+                                            "runAfter": {
+                                                "Set_variable_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "Http",
+                                            "inputs": {
+                                                "body": {
+                                                    "attendant": "@{triggerBody()?['OM_Empleado']?['Email']}",
+                                                    "date": "@{triggerBody()?['OM_FechaReserva']}",
+                                                    "desk": "@{triggerBody()?['OM_Puesto']?['Value']}",
+                                                    "endTime": "@{variables('end_time')}",
+                                                    "office": "@{triggerBody()?['OM_Oficina']?['Value']}",
+                                                    "startTime": "@{variables('start_time')}",
+                                                    "zone": "@{triggerBody()?['OM_Zona']?['Value']}"
+                                                },
+                                                "headers": {
+                                                    "X-RoomManager-User": "desk-reservation-new"
+                                                },
+                                                "method": "POST",
+                                                "uri": "http://{api-url}.azurewebsites.net/api/Desk/CreateDeskMeeting"
+                                            }
+                                        },
+                                        "Set_variable_2": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "start_time",
+                                                "value": "15:00:00"
+                                            }
+                                        },
+                                        "Set_variable_4": {
+                                            "runAfter": {
+                                                "HTTP_2": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "base64qrCode",
+                                                "value": "@{json(string(body('HTTP_2'))).QrCode}"
+                                            }
+                                        },
+                                        "Set_variable_7": {
+                                            "runAfter": {
+                                                "Set_variable_4": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "meetingId",
+                                                "value": "@{json(string(body('HTTP_2'))).MeetingId}"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "default": {
+                                "actions": {
+                                    "HTTP_3": {
+                                        "runAfter": {},
+                                        "type": "Http",
+                                        "inputs": {
+                                            "body": {
+                                                "attendant": "@{triggerBody()?['OM_Empleado']?['Email']}",
+                                                "date": "@{triggerBody()?['OM_FechaReserva']}",
+                                                "desk": "@{triggerBody()?['OM_Puesto']?['Value']}",
+                                                "endTime": "@{variables('end_time')}",
+                                                "office": "@{triggerBody()?['OM_Oficina']?['Value']}",
+                                                "startTime": "@{variables('start_time')}",
+                                                "zone": "@{triggerBody()?['OM_Zona']?['Value']}"
+                                            },
+                                            "headers": {
+                                                "X-RoomManager-User": "desk-reservation-new"
+                                            },
+                                            "method": "POST",
+                                            "uri": "http://{api-url}.azurewebsites.net/api/Desk/CreateDeskMeeting"
+                                        }
+                                    },
+                                    "Set_variable_5": {
+                                        "runAfter": {
+                                            "HTTP_3": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                            "name": "base64qrCode",
+                                            "value": "@{json(string(body('HTTP_3'))).QrCode}"
+                                        }
+                                    },
+                                    "Set_variable_8": {
+                                        "runAfter": {
+                                            "Set_variable_5": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                            "name": "meetingId",
+                                            "value": "@{json(string(body('HTTP_3'))).MeetingId}"
+                                        }
+                                    }
+                                }
+                            },
+                            "expression": "@triggerBody()?['OM_Horario']",
+                            "type": "Switch"
+                        },
+                        "Update_item": {
+                            "runAfter": {
+                                "Switch": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "OM_FechaReserva": "@triggerBody()?['OM_FechaReserva']",
+                                    "OM_IsReccurence": "@triggerBody()?['OM_IsReccurence']",
+                                    "OM_OfficeMeetingId": "@variables('meetingId')",
+                                    "OM_QrCode": "@variables('base64qrCode')",
+                                    "OM_ReservaCancelada": false,
+                                    "Title": "@triggerBody()?['Title']"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('5b477664-f7c2-43bb-9d3a-f4b794b4d54f'))}/items/@{encodeURIComponent(triggerBody()?['ID'])}"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "sharepointonline": {
+                                "connectionId": "[parameters('connections_sharepointonline_externalid')]",
+                                "connectionName": "sharepointonline",
+                                "id": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,207 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_lunch_reservation_new_cellnex_name": {
+            "defaultValue": "lunch-reservation-new-cellnex",
+            "type": "String"
+        },
+        "connections_sharepointonline_externalid": {
+            "defaultValue": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/resourceGroups/OfficeManager/providers/Microsoft.Web/connections/sharepointonline",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_lunch_reservation_new_cellnex_name')]",
+            "location": "westeurope",
+            "tags": {
+                "Project": "office-manager"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_item_is_created": {
+                            "recurrence": {
+                                "frequency": "Second",
+                                "interval": 10
+                            },
+                            "splitOn": "@triggerBody()?['value']",
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('700cfce1-ba68-4c1a-8bb5-b4e227277281'))}/onnewitems"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "HTTP": {
+                            "runAfter": {
+                                "Set_variable_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "body": {
+                                    "attendant": "@{triggerBody()?['OM_Empleado']?['Email']}",
+                                    "date": "@{triggerBody()?['OM_FechaReserva']}",
+                                    "endTime": "@{variables('end_time')}",
+                                    "office": "@{triggerBody()?['OM_Oficina']?['Value']}",
+                                    "reservation_id": "@{triggerBody()?['ID']}",
+                                    "startTime": "@{variables('start_time')}",
+                                    "title": "@{triggerBody()?['Title']}"
+                                },
+                                "headers": {
+                                    "X-RoomManager-User": "lunch-reservation-new"
+                                },
+                                "method": "POST",
+                                "uri": "https://{api-url}.azurewebsites.net/api/Lunch/CreateLunchReservation"
+                            }
+                        },
+                        "Initialize_variable": {
+                            "runAfter": {
+                                "Initialize_variable_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "end_time",
+                                        "type": "string",
+                                        "value": "15:00:00"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_2": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "start_time",
+                                        "type": "string",
+                                        "value": "13:00:00"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_3": {
+                            "runAfter": {
+                                "Initialize_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "email",
+                                        "type": "string",
+                                        "value": "@triggerBody()?['OM_Empleado']?['Email']"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_4": {
+                            "runAfter": {
+                                "Initialize_variable_3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "base64qrCode",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Set_variable": {
+                            "runAfter": {
+                                "Initialize_variable_4": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "start_time",
+                                "value": "@{split(string(triggerBody()?['OM_TurnoHorario']),'-')[0]}"
+                            }
+                        },
+                        "Set_variable_2": {
+                            "runAfter": {
+                                "Set_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "end_time",
+                                "value": "@{split(string(triggerBody()?['OM_TurnoHorario']),'-')[1]}"
+                            }
+                        },
+                        "Update_item": {
+                            "runAfter": {
+                                "HTTP": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "OM_FechaReserva": "@triggerBody()?['OM_FechaReserva']",
+                                    "OM_OfficeMeetingId": "@{json(string(body('HTTP'))).MeetingId}",
+                                    "OM_QrCode": "@{json(string(body('HTTP'))).QrCode}",
+                                    "OM_ReservaCancelada": false,
+                                    "Title": "@triggerBody()?['Title']"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('700cfce1-ba68-4c1a-8bb5-b4e227277281'))}/items/@{encodeURIComponent(triggerBody()?['ID'])}"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "sharepointonline": {
+                                "connectionId": "[parameters('connections_sharepointonline_externalid')]",
+                                "connectionName": "sharepointonline",
+                                "id": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

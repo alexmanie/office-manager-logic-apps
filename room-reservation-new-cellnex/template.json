@@ -1,0 +1,160 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_room_reservation_new_cellnex_name": {
+            "defaultValue": "room-reservation-new-cellnex",
+            "type": "String"
+        },
+        "connections_sharepointonline_externalid": {
+            "defaultValue": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/resourceGroups/OfficeManager/providers/Microsoft.Web/connections/sharepointonline",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_room_reservation_new_cellnex_name')]",
+            "location": "westeurope",
+            "tags": {
+                "Project": "office-manager"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_item_is_created": {
+                            "recurrence": {
+                                "frequency": "Second",
+                                "interval": 10
+                            },
+                            "splitOn": "@triggerBody()?['value']",
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('bf8aaec9-f53d-457f-afbd-4c0cd0ae3dd0'))}/onnewitems"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Condition": {
+                            "actions": {
+                                "Set_variable": {
+                                    "runAfter": {},
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "attendants array",
+                                        "value": "@split(triggerBody()?['OM_Attendees'], ';')"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Initialize_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "not": {
+                                            "equals": [
+                                                "@triggerBody()?['OM_Attendees']",
+                                                "@null"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "HTTP": {
+                            "runAfter": {
+                                "Condition": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "body": {
+                                    "Attendants": "@variables('attendants array')",
+                                    "Duration": "@{triggerBody()?['OM_MeetingDuration']}",
+                                    "Organizer": "@{triggerBody()?['OM_Organizer']?['Email']}",
+                                    "StartDate": "@{triggerBody()?['OM_MeetingDate']}",
+                                    "StartTime": "@{triggerBody()?['OM_MeetingTime']}",
+                                    "Subject": "@{triggerBody()?['OM_Subject']}",
+                                    "roomId": "@{triggerBody()?['OM_Room']}"
+                                },
+                                "headers": {
+                                    "X-RoomManager-User": "room-reservation-new"
+                                },
+                                "method": "POST",
+                                "uri": "https://{api-url}.azurewebsites.net/api/room/CreateRoomReservation"
+                            }
+                        },
+                        "Initialize_variable": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "attendants array",
+                                        "type": "array"
+                                    }
+                                ]
+                            }
+                        },
+                        "Update_item": {
+                            "runAfter": {
+                                "HTTP": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "OM_OfficeMeetingId": "@{json(string(body('HTTP'))).MeetingId}",
+                                    "OM_QrCode": "@{json(string(body('HTTP'))).QrCode}",
+                                    "Title": "@triggerBody()?['Title']"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "patch",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('bf8aaec9-f53d-457f-afbd-4c0cd0ae3dd0'))}/items/@{encodeURIComponent(triggerBody()?['ID'])}"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "sharepointonline": {
+                                "connectionId": "[parameters('connections_sharepointonline_externalid')]",
+                                "connectionName": "sharepointonline",
+                                "id": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

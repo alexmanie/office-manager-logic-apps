@@ -1,0 +1,12 @@
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fdesk-reservation-cancel-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fdesk-reservation-new-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fincident-close-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fincident-new-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Flunch-reservation-cancel-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Flunch-reservation-new-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fparking-reservation-cancel-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fparking-reservation-new-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Froom-reservation-cancel-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Froom-reservation-new-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fvisita-reservation-cancel-cellnex%2Ftemplate.json
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexmanie%2Foffice-manager-logic-apps%2Fmaster%2Fvisita-reservation-new-cellnex%2Ftemplate.json

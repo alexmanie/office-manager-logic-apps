@@ -1,0 +1,123 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_incident_new_cellnex_name": {
+            "defaultValue": "incident-new-cellnex",
+            "type": "String"
+        },
+        "connections_office365_1_externalid": {
+            "defaultValue": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/resourceGroups/OfficeManager/providers/Microsoft.Web/connections/office365-1",
+            "type": "String"
+        },
+        "connections_sharepointonline_externalid": {
+            "defaultValue": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/resourceGroups/OfficeManager/providers/Microsoft.Web/connections/sharepointonline",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_incident_new_cellnex_name')]",
+            "location": "westeurope",
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_item_is_created": {
+                            "recurrence": {
+                                "frequency": "Second",
+                                "interval": 10
+                            },
+                            "splitOn": "@triggerBody()?['value']",
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/tables/@{encodeURIComponent(encodeURIComponent('2d7604cb-cb62-4fb4-baf3-7c355ac14879'))}/onnewitems"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Create_file": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@triggerBody()?['OM_ImagenData64']",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://yourtenant.sharepoint.com/sites/OfficeManagerCellnex'))}/files",
+                                "queries": {
+                                    "folderPath": "/images",
+                                    "name": "imagenprueba.png",
+                                    "queryParametersSingleEncoded": true
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "Send_an_email_(V2)": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "Body": "<p><span style=\"font-size: 16px\"><strong>Nueva incidencia reportada</strong></span><br>\n<br>\nId: @{triggerBody()?['ID']}<br>\nReportada el: @{triggerBody()?['DateReported']}<br>\nReportada por:<br>\n@{triggerBody()?['Author']?['DisplayName']}<br>\n@{triggerBody()?['Author']?['Email']}<br>\n<br>\nTítulo: @{triggerBody()?['Title']}<br>\nDescripción: @{triggerBody()?['Description']}<br>\n<br>\nOficina: @{triggerBody()?['OM_Oficina']?['Value']}<br>\nOrigen incidencia:<br>\n@{triggerBody()?['OM_OrigenIncidencia']}<br>\n<br>\nEnlace incidencia: @{triggerBody()?['{Link}']}</p>",
+                                    "Cc": "alejandro.royo@raona.com; antonio.rodriguez@raona.com",
+                                    "From": "alex.martinez@raona.com",
+                                    "Importance": "Normal",
+                                    "Subject": "[[[OfficeManager] Nueva incidencia reportada Id:@{triggerBody()?['ID']}",
+                                    "To": "alex.martinez@raona.com"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['office365']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/Mail"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "office365": {
+                                "connectionId": "[parameters('connections_office365_1_externalid')]",
+                                "connectionName": "office365-1",
+                                "id": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/providers/Microsoft.Web/locations/westeurope/managedApis/office365"
+                            },
+                            "sharepointonline": {
+                                "connectionId": "[parameters('connections_sharepointonline_externalid')]",
+                                "connectionName": "sharepointonline",
+                                "id": "/subscriptions/39079313-fb1a-4587-a346-74914fa55493/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
